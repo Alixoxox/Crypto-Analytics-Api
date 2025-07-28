@@ -22,6 +22,7 @@ public class UserEntryService {
     }
 
     public int saveEntry(User data){
+
         User existing = UER.findByEmail(data.getEmail());
 
         if (existing != null) {
@@ -35,7 +36,32 @@ public class UserEntryService {
         UER.save(data);
         return 1;
     }
+    public Optional<User> verifyUser(User data) {
+        User existing = UER.findByEmail(data.getEmail());
+        if (existing == null) {
+            return Optional.empty();
+        }
+        // Compare raw password with encoded one using matches()
+        if (passwordEncoder.matches(data.getPassword(), existing.getPassword())) {
+            return Optional.of(existing);
+        }
 
+        return Optional.empty();
+    }
+    public int saveGoogleUser(User data){
+        User existing = UER.findByEmail(data.getEmail());
+        if (existing == null) {UER.save(data); return 0;}
+        if(existing.getGoogleId()!=null && existing.getGoogleId().equals(data.getGoogleId())){return -1;}
+        else {
+            existing.setPictureUrl(data.getPictureUrl());
+            if(existing.getGoogleId()==null){
+                existing.setGoogleId(data.getGoogleId());
+            }
+            existing.setName(data.getName());
+            UER.save(existing);
+            return 1;
+        }
+    }
     public List<User> getAll(){
         return UER.findAll();
     }

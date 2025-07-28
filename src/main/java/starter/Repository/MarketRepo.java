@@ -2,9 +2,9 @@ package starter.Repository;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-import starter.Entity.TrendingCoins;
+import starter.Entity.Market;
 
 @Repository
-public interface TrendingCoinRepo extends MongoRepository<TrendingCoins,String> {
+public interface MarketRepo extends MongoRepository<Market,String> {
 
 }

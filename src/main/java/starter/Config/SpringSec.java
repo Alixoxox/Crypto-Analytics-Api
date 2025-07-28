@@ -1,5 +1,8 @@
 package starter.Config;
 
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import starter.Filter.Jwtfilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +60,18 @@ public class SpringSec {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
                 .authenticationProvider(authProvider(userDetailService, passwordEncoder()))
                 .build();
+    }
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**") // apply to all endpoints only for dev
+                        .allowedOrigins("*") // allow all origins
+                        .allowedMethods("*") // allow all HTTP methods
+                        .allowedHeaders("*"); // allow all headers
+            }
+        };
     }
 
 }

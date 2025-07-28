@@ -1,5 +1,6 @@
 package starter.Entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.*;
@@ -25,7 +26,6 @@ public class User {
     private String email;
 
     private String googleId;    // ❗️ Nullable for email users
-
     private String password;    // ❗️ Nullable for Google users
 
 }

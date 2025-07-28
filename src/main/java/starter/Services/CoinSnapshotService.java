@@ -1,71 +1,114 @@
 package starter.Services;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import starter.Entity.Coin;
+import starter.Utils.Chart;
 import starter.Entity.CoinSnapshot;
 import starter.Repository.CoinSnapRepo;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+
+import static com.mongodb.client.model.Aggregates.group;
+import static java.util.Collections.sort;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 @Service
 public class CoinSnapshotService {
 
     @Autowired
     private GekoApi ga;
-
     @Autowired
     private CoinSnapRepo snapshotRepository;
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
-    private static final ObjectMapper mapper=new ObjectMapper(); //convert string to Object entity java rules
+    public List<org.bson.Document> FetchUniqueLatestSnapshots(int page, int size){ //random may repeat
+        Aggregation aggregation=Aggregation.newAggregation(
+                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                Aggregation.group("coinId").first("$$ROOT").as("doc"),
+                Aggregation.replaceRoot("doc"),
+                Aggregation.skip((long) page * size),
+                Aggregation.limit(size)
+        );
 
-    public void SaveSnapshot(){
-        try {
-            String response=ga.getMarketData();
-            if (response!=null) {
-                JsonNode marketData = mapper.readTree(response);
+        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class)
+                .getMappedResults();
 
-                for (JsonNode coinNode : marketData) {
-                    String coinIdStr = coinNode.get("id").asText();
-                    long updatedAt = Instant.parse(coinNode.get("last_updated").asText()).toEpochMilli();
+    }
 
-                    CoinSnapshot snapshot = new CoinSnapshot(
-                            coinIdStr + "_" + updatedAt,
-                            coinNode.path("id").asText(""), // id here coin id
-                            coinNode.path("image").asText(null),
-                            coinNode.path("current_price").asDouble(0.0),
-                            coinNode.path("high_24h").asDouble(0.0),
-                            coinNode.path("low_24h").asDouble(0.0),
-                            coinNode.path("price_change_percentage_24h").asDouble(0.0),
-                            coinNode.path("market_cap").asLong(0),
-                            coinNode.path("total_volume").asLong(0),
-                            coinNode.path("market_cap_rank").asInt(0),
-                            coinNode.path("circulating_supply").asDouble(0.0),
-                            coinNode.path("total_supply").asDouble(0.0),
-                            updatedAt
-                    );
+    public List<org.bson.Document> FetchTopGainers(int limit){ //highest price increase in 24h
+        Aggregation aggregation=newAggregation(
+                Aggregation.match(Criteria.where("last_updated").gte(Instant.now().minus(Duration.ofDays(1)).toEpochMilli())),
+                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                Aggregation.group("coinId").first("$$ROOT").as("doc"),
+                Aggregation.replaceRoot("doc"),
+                Aggregation.sort(Sort.Direction.DESC, "price_change_percentage_24h"),
+                limit(limit)
+        );
+        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
+    }
+    public List<org.bson.Document> FetchTopLosers(int limit){ //lowest increase in 24h
+        Aggregation aggregation=newAggregation(
+                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                Aggregation.group("coinId").first("$$ROOT").as("doc"),
+                Aggregation.replaceRoot("doc"),
+                Aggregation.sort(Sort.Direction.ASC, "price_change_percentage_24h"),
+                limit(limit)
+        );
+        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
+    }
+    public List<org.bson.Document> FetchBestCoins(int limit){ //market best
+        Aggregation aggregation=Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("market_cap_rank").gte(1).lte(limit)),
+                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                Aggregation.group("market_cap_rank").first("$$ROOT").as("doc"), //remove duplicate
+                Aggregation.replaceRoot("doc"),
+                Aggregation.sort(Sort.Direction.ASC, "market_cap_rank"),
+                limit(limit)
+        );
+        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
 
-                    snapshotRepository.save(snapshot);
-                }
+    }
 
-            } else {
-                System.err.println("Failed to fetch market data. " );
-            }
+    public Chart fetchChartData(String name){
+        Aggregation aggregation=Aggregation.newAggregation(
+                Aggregation.match(Criteria.where("coinId").is(name)),
+                Aggregation.sort(Sort.Direction.DESC, "last_updated")
+        );
+        List<CoinSnapshot> data=mongoTemplate.aggregate(aggregation, "coin_snapshots", CoinSnapshot.class).getMappedResults();
+        List<Long> timestamps = new ArrayList<>();
+        List<Double> prices = new ArrayList<>();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        for (CoinSnapshot s : data) {
+            timestamps.add(s.getLastUpdated());
+            prices.add(s.getCurrent_price());
         }
-
+        CoinSnapshot lastestShot=data.getFirst();
+        return new Chart(lastestShot,prices,timestamps);
+    }
+    @Async
+    public CompletableFuture<Chart> GetCompData(String Coin){
+        return CompletableFuture.completedFuture(fetchChartData(Coin));
+    }
+    public Set<String> getCoins(List<CoinSnapshot> snapshot){
+        Set<String> uniqueName= new HashSet<>(); //hashset extends set
+        for (CoinSnapshot snap: snapshot ){ //for each loop
+            String name= snap.getCoinId();
+            if(name!=null) uniqueName.add(name);
+        }
+        return uniqueName;
     }
 
-    public Page<CoinSnapshot> FetchSnatch(int page, int size){
-        Pageable pageable = PageRequest.of(page, size);
-        return snapshotRepository.findAll(pageable);
-    }
 }

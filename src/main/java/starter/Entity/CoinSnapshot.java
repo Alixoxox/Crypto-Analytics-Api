@@ -1,13 +1,12 @@
 package starter.Entity;
 
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 @Document(collection = "coin_snapshots")
 @Data
@@ -32,6 +31,15 @@ public class CoinSnapshot {
 
     private double circulating_supply;
     private double total_supply;
+    private double max_supply;
 
-    private long last_updated; // Epoch millis (UTC)
+    private double ath;  //all time high
+    private double ath_change_percentage;
+    private long ath_date; // or String
+
+    private double atl; //all time low
+    private double atl_change_percentage;
+    private long atl_date; // or String
+    @Field("last_updated")  // 🔁 maps MongoDB field to Java field
+    private long lastUpdated;
 }

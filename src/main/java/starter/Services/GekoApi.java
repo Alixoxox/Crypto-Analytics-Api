@@ -24,7 +24,7 @@ public class GekoApi {
     public String getMarketData() {
         try {
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.coingecko.com/api/v3/coins/markets?vs_currency=btc"))
+                    .uri(URI.create("https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd"))
                     .header("accept", "application/json")
                     .header("x-cg-demo-api-key", apiKey)
                     .method("GET", HttpRequest.BodyPublishers.noBody())
@@ -35,7 +35,19 @@ public class GekoApi {
             return null;
         }
     }
-
+    public String getMarketOverview(){
+        try{
+            HttpRequest request=HttpRequest.newBuilder()
+                    .uri(URI.create("https://api.coingecko.com/api/v3/global"))
+                    .header("accept","application/json")
+                    .header("x-cg-demo-api-key",apiKey)
+                    .method("GET",HttpRequest.BodyPublishers.noBody()).build();
+            HttpResponse<String> response = HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+            return response.body();
+        }catch(Exception e){
+        return null;
+        }
+    }
     public String getCoins(){
         try{
             HttpRequest request = HttpRequest.newBuilder()

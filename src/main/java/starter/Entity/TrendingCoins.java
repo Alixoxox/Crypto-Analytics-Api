@@ -24,7 +24,7 @@ public class TrendingCoins {
 
     private int market_cap_rank;
 
-    private double price_btc; //btc as a common price convert it to local currency
+    private double price_usd; //btc as a common price convert it to local currency
     private double priceChangePercentage24hUsd;
 
     private long market_cap;
