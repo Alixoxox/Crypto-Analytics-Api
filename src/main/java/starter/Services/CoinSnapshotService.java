@@ -69,17 +69,18 @@ public class CoinSnapshotService {
         );
         return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
     }
-    public List<org.bson.Document> FetchBestCoins(int limit){ //market best
+    public List<org.bson.Document> FetchBestCoins(int page,int size){ //market best
+        int startRank = page * size + 1;
+        int endRank   = (page + 1) * size;
         Aggregation aggregation=Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("market_cap_rank").gte(1).lte(limit)),
+                Aggregation.match(Criteria.where("market_cap_rank").gte(startRank).lte(endRank)),
                 Aggregation.sort(Sort.Direction.DESC, "last_updated"),
                 Aggregation.group("market_cap_rank").first("$$ROOT").as("doc"), //remove duplicate
                 Aggregation.replaceRoot("doc"),
-                Aggregation.sort(Sort.Direction.ASC, "market_cap_rank"),
-                limit(limit)
+                Aggregation.sort(Sort.Direction.ASC, "market_cap_rank")
+
         );
         return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
-
     }
 
     public Chart fetchChartData(String name){

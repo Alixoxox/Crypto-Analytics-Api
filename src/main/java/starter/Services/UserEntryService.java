@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import starter.Entity.User;
 import starter.Repository.UserRep;
 
+import java.beans.Encoder;
 import java.util.List;
 import java.util.Optional;
 @Service
@@ -62,6 +63,10 @@ public class UserEntryService {
             return 1;
         }
     }
+    public void ChangePass(String newPass,User exists){
+        exists.setPassword(passwordEncoder.encode(newPass));
+        UER.save(exists);
+    }
     public List<User> getAll(){
         return UER.findAll();
     }
@@ -74,4 +79,5 @@ public class UserEntryService {
     public User findByName(String name) {
         return UER.findByName(name); // will no longer throw NullPointerException
     }
+
 }

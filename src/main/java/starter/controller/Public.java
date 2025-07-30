@@ -1,5 +1,6 @@
 package starter.controller;
 
+import org.apache.coyote.Response;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,7 @@ import starter.Config.UserDetailImpl;
 import starter.Entity.*;
 import starter.Repository.CoinSnapRepo;
 import starter.Repository.MarketRepo;
+import starter.Repository.UserRep;
 import starter.Services.EntryService;
 import starter.Services.CoinSnapshotService;
 import starter.Services.TrendingCoinService;
@@ -48,7 +50,8 @@ public class Public {
     private TrendingCoinService TCS;
     @Autowired
     private MarketRepo MR;
-
+@Autowired
+private UserRep UER;
     @GetMapping("ping/")
     public ResponseEntity Ping(){
         return ResponseEntity.ok().build();
@@ -95,7 +98,7 @@ public class Public {
                 response.put("User",x.get());
                 return ResponseEntity.ok(response);
             }else{
-                return ResponseEntity.badRequest().build();
+                return ResponseEntity.badRequest().body("Email not Found");
             }
         } catch (AuthenticationException e) {
             e.printStackTrace();
@@ -135,9 +138,9 @@ public class Public {
     }
 
     @GetMapping("coins/topRank")
-    public ResponseEntity<List<Document>> GetBYRank(@RequestParam int limit){
+    public ResponseEntity<List<Document>> GetBYRank(@RequestParam int page,@RequestParam int size){
         try{
-            List<Document> response=CSS.FetchBestCoins(limit);
+            List<Document> response=CSS.FetchBestCoins(page,size);
             return ResponseEntity.ok(response);
         }catch(Exception e){
             e.printStackTrace();
@@ -213,6 +216,72 @@ public class Public {
             Set<String> Coins=CSS.getCoins(snapshot);
             return ResponseEntity.ok(Coins);
         }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error occurred");
+        }
+    }
+    @PostMapping("account/changePass")
+    public ResponseEntity ChangePassword(@RequestBody User change){
+        try{
+            User exist=UER.findByEmail(change.getEmail());
+            if(exist==null){
+                return ResponseEntity.badRequest().body("No email id found");
+            }else {
+                UES.ChangePass(change.getPassword(), exist);
+                return ResponseEntity.ok().build();
+            }
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error occurred");
+        }
+    }
+    @PostMapping("account/linkG")
+    public ResponseEntity LinkGoogle(@RequestParam String email, String googleId){
+        try{
+            User exist=UER.findByEmail(email);
+            if(exist!=null && exist.getGoogleId()!=null){
+                return ResponseEntity.badRequest().body("Gmail account already linked with another account");
+            } else if (exist!=null && exist.getGoogleId()==null ) {
+                exist.setGoogleId(googleId);
+                UER.save(exist);
+                return ResponseEntity.ok().build();
+            }else{
+                return ResponseEntity.badRequest().body("You must be an active user");
+            }
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error occurred");
+        }
+    }
+    @PostMapping("account/UnlinkG")
+    public ResponseEntity UnLinkGoogle(@RequestParam String email){
+        try{
+            User exist=UER.findByEmail(email);
+            if(exist!=null && exist.getGoogleId()==null){
+                return ResponseEntity.badRequest().body("Google account already unlinked");
+            } else if (exist!=null && exist.getGoogleId()!=null ) {
+                exist.setGoogleId("");
+                UER.save(exist);
+                return ResponseEntity.ok().build();
+            }else{
+                return ResponseEntity.badRequest().body("You must be an active user");
+            }
+        } catch (RuntimeException e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error occurred");
+        }
+    }
+    @PostMapping("account/delete")
+    public ResponseEntity DeleteAcc(@RequestParam String email){
+        try{
+            User exist=UER.findByEmail(email);
+            if(exist!=null ){
+                UER.delete(exist);
+                return ResponseEntity.ok().build();
+            } else{
+                return ResponseEntity.badRequest().body("You must be an active user");
+            }
+        } catch (RuntimeException e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Error occurred");
         }

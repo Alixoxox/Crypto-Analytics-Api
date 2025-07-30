@@ -16,6 +16,5 @@ public class CryptoApplication {
 		System.setProperty("COINGECKO_API_KEY",dotenv.get("COINGECKO_API_KEY"));
 		SpringApplication.run(CryptoApplication.class, args);
 	}
-
 }
 
