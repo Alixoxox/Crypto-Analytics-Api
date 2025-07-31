@@ -80,14 +80,16 @@ public class EntryService {
         if(response!=null) {
             JsonNode root = new ObjectMapper().readTree(response);
             JsonNode data = root.path("data");
+            long updatedAt = Instant.parse(data.path("last_updated").asText()).toEpochMilli();
+            String id = data.path("markets").asText() + "-" + updatedAt;
             Market market = new Market(
-                    data.path("markets").asText(),
-                    data.path("active_cryptocurrencies").asLong(),
-                    data.path("markets").asLong(),
-                    data.path("total_market_cap").path("usd").asDouble(),
-                    data.path("total_volume").path("usd").asDouble(),
-                    data.path("market_cap_percentage").path("btc").asDouble(),
-                    data.path("market_cap_change_percentage_24h_usd").path("updated_at").asLong(0)
+                            id,
+                            data.path("active_cryptocurrencies").asLong(),
+                            data.path("markets").asLong(),
+                            data.path("total_market_cap").path("usd").asDouble(),
+                            data.path("total_volume").path("usd").asDouble(),
+                            data.path("market_cap_percentage").path("btc").asDouble(),
+                            updatedAt
             );
             MS.save(market);
         } else {

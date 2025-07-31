@@ -65,6 +65,7 @@ public class UserEntryService {
     }
     public void ChangePass(String newPass,User exists){
         exists.setPassword(passwordEncoder.encode(newPass));
+        System.out.print("pass");
         UER.save(exists);
     }
     public List<User> getAll(){

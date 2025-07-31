@@ -90,6 +90,7 @@ private UserRep UER;
     @PostMapping("login/")
     public ResponseEntity Login(@RequestBody User currentData){
         try {
+            System.out.println(currentData.getEmail()+" "+currentData.getPassword());
             Optional<User> x=UES.verifyUser(currentData);
             if(x.isPresent()){
                 String jwt= jwtUtils.generateToken(currentData.getEmail());
@@ -225,6 +226,7 @@ private UserRep UER;
         try{
             User exist=UER.findByEmail(change.getEmail());
             if(exist==null){
+                System.out.println("failed");
                 return ResponseEntity.badRequest().body("No email id found");
             }else {
                 UES.ChangePass(change.getPassword(), exist);
@@ -236,17 +238,17 @@ private UserRep UER;
         }
     }
     @PostMapping("account/linkG")
-    public ResponseEntity LinkGoogle(@RequestParam String email, String googleId){
+    public ResponseEntity LinkGoogle(@RequestBody User current){
         try{
-            User exist=UER.findByEmail(email);
+            User exist=UER.findByEmail(current.getEmail());
             if(exist!=null && exist.getGoogleId()!=null){
-                return ResponseEntity.badRequest().body("Gmail account already linked with another account");
+                return ResponseEntity.badRequest().build();
             } else if (exist!=null && exist.getGoogleId()==null ) {
-                exist.setGoogleId(googleId);
+                exist.setGoogleId(current.getGoogleId());
                 UER.save(exist);
                 return ResponseEntity.ok().build();
             }else{
-                return ResponseEntity.badRequest().body("You must be an active user");
+                return ResponseEntity.badRequest().build();
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
@@ -254,17 +256,19 @@ private UserRep UER;
         }
     }
     @PostMapping("account/UnlinkG")
-    public ResponseEntity UnLinkGoogle(@RequestParam String email){
+    public ResponseEntity UnLinkGoogle(@RequestBody User current){
         try{
-            User exist=UER.findByEmail(email);
+            User exist=UER.findByEmail(current.getEmail());
             if(exist!=null && exist.getGoogleId()==null){
-                return ResponseEntity.badRequest().body("Google account already unlinked");
+                System.out.println("bad");
+                return ResponseEntity.badRequest().build();
             } else if (exist!=null && exist.getGoogleId()!=null ) {
-                exist.setGoogleId("");
+                exist.setGoogleId(null);
                 UER.save(exist);
                 return ResponseEntity.ok().build();
             }else{
-                return ResponseEntity.badRequest().body("You must be an active user");
+                System.out.println("fail");
+                return ResponseEntity.badRequest().build();
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
@@ -272,19 +276,20 @@ private UserRep UER;
         }
     }
     @PostMapping("account/delete")
-    public ResponseEntity DeleteAcc(@RequestParam String email){
+    public ResponseEntity DeleteAcc(@RequestBody User current){
         try{
-            User exist=UER.findByEmail(email);
+            User exist=UER.findByEmail(current.getEmail());
             if(exist!=null ){
                 UER.delete(exist);
                 return ResponseEntity.ok().build();
             } else{
-                return ResponseEntity.badRequest().body("You must be an active user");
+                return ResponseEntity.badRequest().build();
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error occurred");
+            return ResponseEntity.badRequest().build();
         }
     }
+
 
 }
