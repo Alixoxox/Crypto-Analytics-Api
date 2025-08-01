@@ -11,4 +11,6 @@ import java.util.Optional;
 public interface CoinSnapRepo extends MongoRepository<CoinSnapshot,String> {
     Optional<CoinSnapshot> findFirstByCoinIdOrderByLastUpdatedDesc(String coinId);
     Optional<CoinSnapshot> findFirstByCoinIdContainingIgnoreCase(String coinId);
+    Optional<CoinSnapshot> findTopByCoinIdAndLastUpdatedLessThanEqualOrderByLastUpdatedDesc(String coinId, Long timestamp);
+
 }

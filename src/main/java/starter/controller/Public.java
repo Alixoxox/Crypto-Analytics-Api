@@ -139,9 +139,9 @@ private UserRep UER;
     }
 
     @GetMapping("coins/topRank")
-    public ResponseEntity<List<Document>> GetBYRank(@RequestParam int page,@RequestParam int size){
+    public ResponseEntity<List<Document>> GetBYRank(@RequestParam int limit){
         try{
-            List<Document> response=CSS.FetchBestCoins(page,size);
+            List<Document> response=CSS.FetchBestCoins(limit);
             return ResponseEntity.ok(response);
         }catch(Exception e){
             e.printStackTrace();
@@ -178,7 +178,7 @@ private UserRep UER;
     @GetMapping("market/info")
     public ResponseEntity GetRecentData(){
         try{
-            List data= MR.findAll();
+            List data= MR.findTopByOrderByLastUpdatedDesc();
             return ResponseEntity.ok(data);
         }catch (Exception e){
             e.printStackTrace();

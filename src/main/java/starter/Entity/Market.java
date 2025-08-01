@@ -18,6 +18,6 @@ public class Market {
     private Double totalMarketCapUsd;
     private Double TotalVol;
     private Double btcCapPercentage;
-    private long last_updated; // Epoch millis (UTC)
+    private long lastUpdated; // Epoch millis (UTC)
 
 }

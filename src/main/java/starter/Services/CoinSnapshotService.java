@@ -47,11 +47,36 @@ public class CoinSnapshotService {
                 .getMappedResults();
 
     }
+    List<String> blacklist = List.of(
+            "tether", "usdt", "usdt0", "usdtb",
+            "usd-coin", "usdc", "usdc0",
+            "dai", "susd", "usds", "susds",
+            "tusd", "trueusd", "gusd", "paxos-standard", "usdp",
+            "binance-usd", "busd", "fei-usd", "usdn", "alusd",
+            "frax", "lusd", "musd", "nusd","binance-bridged-usdc-bnb-smart-chain",
 
+            // Bridged/staked variants
+            "ethena-usde", "ethena-staked-usde",
+            "polygon-bridged-usdt-polygon",
+            "binance-bridged-usdt-bnb-smart-chain",
+            "usd1-wlfi", "usde",
+            "bridged-usdc", "bridged-usdt", "axlusdc", "axlusdt",
+
+            // Institutional & obscure
+            "blackrock-usd-institutional-digital-liquidity-fund",
+            "first-digital-usd", "fdusd",
+            "sai", "husd", "xsgd", "vai",
+
+
+            // Algorithmic/failed stablecoins
+            "ust", "terrausd", "usn", "ees",
+            "bean", "mim", "ustc"
+    );
     public List<org.bson.Document> FetchTopGainers(int limit){ //highest price increase in 24h
         Aggregation aggregation=newAggregation(
                 Aggregation.match(Criteria.where("last_updated").gte(Instant.now().minus(Duration.ofDays(1)).toEpochMilli())),
-                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                Aggregation.match(Criteria.where("coinId").nin(blacklist)),
+                Aggregation.sort(Sort.by(Sort.Order.asc("coinId"), Sort.Order.desc("last_updated"))),
                 Aggregation.group("coinId").first("$$ROOT").as("doc"),
                 Aggregation.replaceRoot("doc"),
                 Aggregation.sort(Sort.Direction.DESC, "price_change_percentage_24h"),
@@ -59,23 +84,14 @@ public class CoinSnapshotService {
         );
         return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
     }
-    public List<org.bson.Document> FetchTopLosers(int limit){ //lowest increase in 24h
-        Aggregation aggregation=newAggregation(
-                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
-                Aggregation.group("coinId").first("$$ROOT").as("doc"),
-                Aggregation.replaceRoot("doc"),
-                Aggregation.sort(Sort.Direction.ASC, "price_change_percentage_24h"),
-                limit(limit)
-        );
-        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
-    }
-    public List<org.bson.Document> FetchBestCoins(int page,int size){ //market best
-        int startRank = page * size + 1;
-        int endRank   = (page + 1) * size;
+
+    public List<org.bson.Document> FetchBestCoins(int limit){ //market best
+
         Aggregation aggregation=Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("market_cap_rank").gte(startRank).lte(endRank)),
-                Aggregation.sort(Sort.Direction.DESC, "last_updated"),
-                Aggregation.group("market_cap_rank").first("$$ROOT").as("doc"), //remove duplicate
+                Aggregation.match(Criteria.where("market_cap_rank").gte(1).lte(limit)),
+                Aggregation.match(Criteria.where("coinId").nin(blacklist)),
+                Aggregation.sort(Sort.by(Sort.Order.asc("coinId"), Sort.Order.desc("last_updated"))),
+                Aggregation.group("coinId").first("$$ROOT").as("doc"),
                 Aggregation.replaceRoot("doc"),
                 Aggregation.sort(Sort.Direction.ASC, "market_cap_rank")
 

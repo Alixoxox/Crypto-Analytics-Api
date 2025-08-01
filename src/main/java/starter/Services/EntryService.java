@@ -80,7 +80,7 @@ public class EntryService {
         if(response!=null) {
             JsonNode root = new ObjectMapper().readTree(response);
             JsonNode data = root.path("data");
-            long updatedAt = Instant.parse(data.path("last_updated").asText()).toEpochMilli();
+            long updatedAt = data.path("updated_at").asLong() * 1000L;
             String id = data.path("markets").asText() + "-" + updatedAt;
             Market market = new Market(
                             id,
