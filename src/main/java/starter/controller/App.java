@@ -8,16 +8,16 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import starter.Entity.CoinPredictions;
 import starter.Entity.Notify;
 import starter.Entity.User;
+import starter.Repository.CoinPredictionRepository;
 import starter.Repository.NotifyRepo;
 import starter.Repository.UserRep;
 import starter.Services.CoinSnapshotService;
 import starter.Services.NotifyService;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -32,7 +32,8 @@ public class App {
     private MongoTemplate mongoTemplate;
     @Autowired
     private NotifyRepo NFR;
-
+@Autowired
+private CoinPredictionRepository CPR;
     @PostMapping("/notify")
     public ResponseEntity<List<Notify>> run(@RequestBody CoinRequest info) {
         User user = UER.findByEmail(info.getEmail());
@@ -61,7 +62,6 @@ public class App {
     public static class CoinRequest {
         private String CoinName;
         private String email;
-        // getters and setters
     }
 
     @PostMapping("add/watching")
@@ -101,7 +101,6 @@ public class App {
 
     @PostMapping("view/watching")
     public ResponseEntity<Object> GetWatchingCoins(@RequestBody CoinRequest coin) {
-
         User existing = UER.findByEmail(coin.getEmail());
         if (existing != null) {
             List<String> watching = existing.getWatching();
@@ -112,6 +111,13 @@ public class App {
         }
         return ResponseEntity.badRequest().build();
     }
-
-
+    @GetMapping("/predict")
+    public ResponseEntity<List<CoinPredictions>> PredictCoin(@RequestParam String coin){
+        try {
+            List<CoinPredictions> x = CPR.findByCoinId(coin);
+            return ResponseEntity.ok().body(x);
+        }catch(Exception e){
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

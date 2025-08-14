@@ -13,9 +13,13 @@ import starter.Repository.CoinSnapRepo;
 import starter.Repository.MarketRepo;
 import starter.Repository.TrendingCoinRepo;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class EntryService {
@@ -143,6 +147,21 @@ public class EntryService {
             e.printStackTrace();
         }
     }
+    private double runPythonProphet(List<Long> timestamps, List<Double> prices) throws IOException {
+        String tsString = timestamps.stream().map(String::valueOf).collect(Collectors.joining(","));
+        String prString = prices.stream().map(String::valueOf).collect(Collectors.joining(","));
+
+        ProcessBuilder pb = new ProcessBuilder(
+                "python3", "forecast.py", tsString, prString
+        );
+        pb.redirectErrorStream(true);
+
+        Process process = pb.start();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String output = reader.readLine();
+        return Double.parseDouble(output.trim());
+    }
+
 
 }
 

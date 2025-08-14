@@ -82,7 +82,7 @@ public class NotifyService {
 
             double change = coin.getPrice_change_percentage_24h();
             String formattedChange = String.format("%.2f%%", change);
-            String formattedPrice = String.format("$%,.2f", coin.getCurrent_price());
+            String formattedPrice = String.format("$%s", coin.getCurrent_price());
 
             // Always positive
             n.setTitle("🚀 " + coin.getCoinId().toUpperCase() + " surged " + formattedChange);
