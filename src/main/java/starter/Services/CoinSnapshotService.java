@@ -1,5 +1,6 @@
 package starter.Services;
 
+import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -14,10 +15,7 @@ import starter.Repository.CoinSnapRepo;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.mongodb.client.model.Aggregates.group;
@@ -84,6 +82,19 @@ public class CoinSnapshotService {
         );
         return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
     }
+    public List<Document> FetchWatching(List<String> watchlist) {
+            Aggregation aggregation = Aggregation.newAggregation(
+                    Aggregation.match(Criteria.where("coinId").in(watchlist)),
+                    Aggregation.sort(Sort.Direction.DESC, "last_updated"),
+                    Aggregation.group("coinId").first(Aggregation.ROOT).as("latest"),
+                    Aggregation.replaceRoot("latest"),
+                    Aggregation.sort(Sort.Direction.DESC, "market_cap") // sort by market_cap in MongoDB
+            );
+
+            return mongoTemplate
+                    .aggregate(aggregation, "coin_snapshots", Document.class)
+                    .getMappedResults();
+        }
 
     public List<org.bson.Document> FetchBestCoins(int limit){ //market best
 

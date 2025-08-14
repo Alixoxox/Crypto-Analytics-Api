@@ -9,6 +9,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.List;
+
 @Document(collection = "Users")
 @Data
 @NoArgsConstructor
@@ -27,7 +29,8 @@ public class User {
 
     private String googleId;    // ❗️ Nullable for email users
     private String password;    // ❗️ Nullable for Google users
-
+//    watchlist
+    private List<String> watching;
 }
 
 

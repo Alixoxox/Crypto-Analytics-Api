@@ -21,11 +21,12 @@ public class Cronjob {
     private MarketRepo MR;
     @Autowired
     private NotifyService NFS;
-    @Scheduled(fixedRate = 1209600000) // 14 * 24 * 60 * 60 * 1000 ms = 2 weeks
+    @Scheduled(cron = "0 0 0 */4 * ?")  //every 4 days
     public void deleteNotifications(){
         NFR.deleteAll();
     }
-    @Scheduled(cron = "0 0 */2 * * *")  // Every 2 hour
+
+    @Scheduled(cron = "0 0 */1 * * *")  // Every hour
     public void runJobMarketData(){
         CES.SaveSnapshot();
 }
@@ -39,13 +40,9 @@ public class Cronjob {
         CES.SaveMarketReview();
     }
 
-    @Scheduled(fixedRate = 86400000)  // after 1 day or 24 hours
-    public void runBtcPriceUpdate(){
-        NFS.ShowPriceUpdate("bitcoin");
-    }
-    @Scheduled(fixedRate = 172800000)
-    public void runMarketBullBearUpdate(){
+    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
+    public void runGlobalUpdate(){
         NFS.MarketType();
+        NFS.updateTopCoinNotifications();
     }
-
 }

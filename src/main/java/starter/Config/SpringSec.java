@@ -34,9 +34,10 @@ public class SpringSec {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/users/**").authenticated()
+                        .requestMatchers("/user/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -67,7 +68,8 @@ public class SpringSec {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // apply to all endpoints only for dev
-                        .allowedOrigins("*") // allow all origins
+                        .allowedOrigins("http://localhost:5173")
+                        .allowCredentials(true) // allow all origins
                         .allowedMethods("*") // allow all HTTP methods
                         .allowedHeaders("*"); // allow all headers
             }
