@@ -76,13 +76,23 @@ public class NotifyService {
                 .aggregate(agg, "coin_snapshots", CoinSnapshot.class)
                 .getMappedResults();
 
-        // Save as notifications
         for (CoinSnapshot coin : topCoins) {
             Notify n = new Notify();
             n.setCoinId(coin.getCoinId());
-            n.setTitle("Price surged " + coin.getPrice_change_percentage_24h());
-            System.out.println(coin.getPrice_change_percentage_24h());
-            n.setMessage(coin.getCoinId() + " increased by " + coin.getPrice_change_percentage_24h() + " in 24h");
+
+            double change = coin.getPrice_change_percentage_24h();
+            String formattedChange = String.format("%.2f%%", change);
+            String formattedPrice = String.format("$%,.2f", coin.getCurrent_price());
+
+            // Always positive
+            n.setTitle("🚀 " + coin.getCoinId().toUpperCase() + " surged " + formattedChange);
+            n.setMessage(
+                    String.format("%s hit %s, gaining %s in the past 24h.",
+                            coin.getCoinId(),
+                            formattedPrice,
+                            formattedChange)
+            );
+
             n.setLastUpdated(coin.getLastUpdated());
             mongoTemplate.save(n);
         }

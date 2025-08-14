@@ -40,7 +40,7 @@ public class Cronjob {
         CES.SaveMarketReview();
     }
 
-    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 18 * * *")  // 17 = 5 PM
     public void runGlobalUpdate(){
         NFS.MarketType();
         NFS.updateTopCoinNotifications();
