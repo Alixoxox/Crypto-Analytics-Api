@@ -65,42 +65,31 @@ public class NotifyService {
                 Aggregation.group("coinId")
                         .first("coinId").as("coinId")
                         .first("price_change_percentage_24h").as("price_change_percentage_24h")
-                        .first("price").as("price")
-                        .first("last_updated").as("lastUpdated"),
-                Aggregation.match(Criteria.where("price_change_percentage_24h").gte(5)),
+                        .first("current_price").as("current_price")
+                        .first("last_updated").as("last_updated"),
+                Aggregation.match(Criteria.where("price_change_percentage_24h").gte(4)),
                 Aggregation.sort(Sort.Direction.DESC, "price_change_percentage_24h"),
                 Aggregation.limit(40)
         );
-
         List<CoinSnapshot> topCoins = mongoTemplate
                 .aggregate(agg, "coin_snapshots", CoinSnapshot.class)
                 .getMappedResults();
-
         for (CoinSnapshot coin : topCoins) {
             Notify n = new Notify();
             n.setCoinId(coin.getCoinId());
 
             double change = coin.getPrice_change_percentage_24h();
-            String formattedChange = String.format("%.2f%%", change);
-            String formattedPrice = String.format("$%s", coin.getCurrent_price());
-
-            // Always positive
+            String formattedChange = String.format("%.2f%%", change); // keep percentage clean
+            String formattedPrice = "$" + coin.getCurrent_price();
             n.setTitle("🚀 " + coin.getCoinId().toUpperCase() + " surged " + formattedChange);
-            n.setMessage(
-                    String.format("%s hit %s, gaining %s in the past 24h.",
-                            coin.getCoinId(),
-                            formattedPrice,
-                            formattedChange)
-            );
-
+            n.setMessage(String.format(
+                    "%s hit %s, gaining %s in the past 24h.",
+                    coin.getCoinId().toUpperCase(),
+                    formattedPrice,
+                    formattedChange
+            ));
             n.setLastUpdated(coin.getLastUpdated());
             mongoTemplate.save(n);
         }
     }
-
-
-
-
-
-
 }

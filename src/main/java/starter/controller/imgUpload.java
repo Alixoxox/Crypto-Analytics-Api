@@ -23,7 +23,7 @@ public class imgUpload {
     @PostMapping("/{email}")
     public ResponseEntity ImgFunc(@PathVariable String email, @RequestParam("file") MultipartFile file){
         try {
-            Map uploadResult=cloudinary.uploader().upload(file.getBytes(),Map.of("folder","user_uploads"));
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(), Map.of("folder", "user_uploads"));
             String imageUrl = uploadResult.get("secure_url").toString();
             User user = Uer.findByEmail(email);
             if (user != null) {
@@ -35,7 +35,7 @@ public class imgUpload {
                 return ResponseEntity.badRequest().body("User not found.");
             }
         } catch (Exception e) {
-            System.out.println("fail");
+            e.printStackTrace();
             return ResponseEntity.badRequest().build();
         }
     }

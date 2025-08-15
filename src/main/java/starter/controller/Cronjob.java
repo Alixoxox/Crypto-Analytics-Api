@@ -18,6 +18,8 @@ import starter.Services.NotifyService;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +48,7 @@ public class Cronjob {
     @Autowired
     private NotifyService NFS;
 
-    @Scheduled(cron = "0 0 0 */4 * ?")  //every 4 days
+    @Scheduled(cron = "0 0 0 */3 * ?")  //every 4 days
     public void deleteNotifications() {
         NFR.deleteAll();
     }
@@ -67,12 +69,15 @@ public class Cronjob {
         CES.SaveMarketReview();
     }
 
-    @Scheduled(cron = "0 0 23 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
     public void runGlobalUpdate() {
         NFS.MarketType();
+    }
+    @Scheduled(cron = "0 0 */4 * * *")  // Every 4 hour
+    public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 0 23 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
     public void runPredictions() throws Exception {
         CPR.deleteAll(); // clear previous predictions
 
@@ -81,11 +86,11 @@ public class Cronjob {
         Set<String> coins = CSS.getCoins(snapshot);
 
         ObjectMapper mapper = new ObjectMapper();
-
+        Instant twoMonthsAgo = Instant.now().minus(2, ChronoUnit.MONTHS);
         for (String coin : coins) {
             // Fetch historical snapshots
             List<CoinSnapshot> history = mongoTemplate.find(
-                    Query.query(Criteria.where("coinId").is(coin))
+                    Query.query(Criteria.where("coinId").is(coin).and("last_updated").gte(twoMonthsAgo.toEpochMilli()))
                             .with(Sort.by(Sort.Direction.ASC, "last_updated")),
                     CoinSnapshot.class
             );

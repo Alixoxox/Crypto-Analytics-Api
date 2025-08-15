@@ -37,7 +37,6 @@ public class SpringSec {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/user/predict").permitAll()   // public
                         .requestMatchers("/user/**").authenticated()
                         .anyRequest().permitAll()
                 )
@@ -69,7 +68,7 @@ public class SpringSec {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // apply to all endpoints only for dev
-                        .allowedOrigins("http://localhost:5173")
+                        .allowedOriginPatterns("*")
                         .allowCredentials(true) // allow all origins
                         .allowedMethods("*") // allow all HTTP methods
                         .allowedHeaders("*"); // allow all headers
