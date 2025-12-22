@@ -1,13 +1,14 @@
-# STEP 1: Build the JAR on the server
-FROM maven:3.8-openjdk-17 AS build
+# 1. Build stage (Uses Java 21)
+FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
 COPY . .
 RUN mvn clean package -DskipTests
 
-# STEP 2: Create the final small image
-FROM eclipse-temurin:17-jdk-jammy
+# 2. Run stage (Uses Java 21)
+FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
-# This line grabs the JAR that was just built in STEP 1
-COPY --from=build /app/target/Crypto-*.jar app.jar
+# Copy the built jar from the first stage
+COPY --from=build /app/target/*.jar app.jar
+
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
