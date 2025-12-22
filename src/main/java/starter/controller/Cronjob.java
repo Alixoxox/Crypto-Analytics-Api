@@ -23,6 +23,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @Component
@@ -139,4 +140,8 @@ public class Cronjob {
             }
         }
     }
+    @Scheduled(cron="0 */10 * * * *")
+    public String CheckHealth() {
+        return "ok";
     }
+}

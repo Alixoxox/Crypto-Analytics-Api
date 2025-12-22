@@ -50,6 +50,8 @@ public class Public {
     private TrendingCoinService TCS;
     @Autowired
     private MarketRepo MR;
+    @Autowired
+    private Cronjob cjob;
 @Autowired
 private UserRep UER;
     @GetMapping("ping/")
@@ -86,7 +88,10 @@ private UserRep UER;
             return ResponseEntity.badRequest().build();
         }
     }
-
+    @GetMapping("health/")
+    public String CheckHealth() {
+        return cjob.CheckHealth();
+    }
     @PostMapping("login/")
     public ResponseEntity Login(@RequestBody User currentData){
         try {
