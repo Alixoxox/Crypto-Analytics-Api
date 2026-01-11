@@ -3,10 +3,12 @@ package starter.controller;
 import org.apache.coyote.Response;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import starter.Config.UserDetailImpl;
 import starter.Entity.*;
@@ -52,6 +54,8 @@ public class Public {
     private MarketRepo MR;
     @Autowired
     private Cronjob cjob;
+    @Autowired
+    private UserRep userRep;
 @Autowired
 private UserRep UER;
     @GetMapping("ping/")
@@ -92,25 +96,31 @@ private UserRep UER;
     public String CheckHealth() {
         return cjob.CheckHealth();
     }
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     @PostMapping("login/")
-    public ResponseEntity Login(@RequestBody User currentData){
+    public ResponseEntity<?> login(@RequestBody User currentData){
         try {
-            System.out.println(currentData.getEmail()+" "+currentData.getPassword());
-            Optional<User> x=UES.verifyUser(currentData);
-            if(x.isPresent()){
-                String jwt= jwtUtils.generateToken(currentData.getEmail());
-                Map<String,Object> response=new HashMap<>();
-                response.put("token",jwt);
-                response.put("User",x.get());
-                return ResponseEntity.ok(response);
-            }else{
-                return ResponseEntity.badRequest().body("Email not Found");
+            User userOpt = userRep.findByEmail((String)currentData.getEmail()); // only fetch necessary fields
+            if (userOpt==null) return ResponseEntity.badRequest().body(Map.of("error", "Invalid Email"));
+
+            if (!passwordEncoder.matches(currentData.getPassword(), userOpt.getPassword())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid password"));
             }
-        } catch (AuthenticationException e) {
+
+            String jwt = jwtUtils.generateToken(userOpt.getEmail());
+            Map<String,Object> response = Map.of(
+                    "token", jwt,
+                    "User", userOpt  // optionally remove sensitive info
+            );
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
             e.printStackTrace();
-            return  ResponseEntity.badRequest().build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+
     @GetMapping("coins/trending")
     public ResponseEntity<List<TrendingCoins>> fetchTrends(){
         try {

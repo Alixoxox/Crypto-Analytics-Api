@@ -17,8 +17,11 @@ import starter.Services.EntryService;
 import starter.Services.NotifyService;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +68,7 @@ public class Cronjob {
         CES.SaveNewTrend();
     }
 
-    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 16 * * *")  // 17 = 5 PM
     public void runMarketreviewJob() {
         CES.SaveMarketReview();
     }
@@ -78,68 +81,83 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
-    public void runPredictions() throws Exception {
-        CPR.deleteAll(); // clear previous predictions
+    @Scheduled(cron = "0 0 17 * * *")  // 16 = 4 PM, 5 = minute 5
+    public void runPredictions() {
+        try {
+            // Clear previous predictions
+            CPR.deleteAll();
+            // Get top coins
+            List<CoinSnapshot> snapshots = CSR.findAll();
+            Set<String> coins = CSS.getCoins(snapshots);
 
-        // Get top coins
-        List<CoinSnapshot> snapshot = CSR.findAll();
-        Set<String> coins = CSS.getCoins(snapshot);
+            ObjectMapper mapper = new ObjectMapper();
+            LocalDateTime twoMonthsAgo = LocalDateTime.now().minusMonths(2);
+            long twoMonthsAgoMillis = twoMonthsAgo.toInstant(ZoneOffset.UTC).toEpochMilli();
+            for (String coin : coins) {
+                List<CoinSnapshot> history = mongoTemplate.find(
+                        Query.query(Criteria.where("coinId").is(coin)
+                                        .and("last_updated").gte(twoMonthsAgoMillis))
+                                .with(Sort.by(Sort.Direction.ASC, "last_updated")),
+                        CoinSnapshot.class
+                );
 
-        ObjectMapper mapper = new ObjectMapper();
-        Instant twoMonthsAgo = Instant.now().minus(2, ChronoUnit.MONTHS);
-        for (String coin : coins) {
-            // Fetch historical snapshots
-            List<CoinSnapshot> history = mongoTemplate.find(
-                    Query.query(Criteria.where("coinId").is(coin).and("last_updated").gte(twoMonthsAgo.toEpochMilli()))
-                            .with(Sort.by(Sort.Direction.ASC, "last_updated")),
-                    CoinSnapshot.class
-            );
+                if (history.isEmpty()) continue;
 
-            if (history.isEmpty()) continue;
+                List<Long> timestamps = history.stream().map(CoinSnapshot::getLastUpdated).toList();
+                List<Double> prices = history.stream().map(CoinSnapshot::getCurrent_price).toList();
+                // Use relative path for deployment
+                String scriptPath = new File("src/main/resources/predict_prophet.py").getAbsolutePath();
 
-            List<Long> timestamps = history.stream().map(CoinSnapshot::getLastUpdated).toList();
-            List<Double> prices = history.stream().map(CoinSnapshot::getCurrent_price).toList();
+                ProcessBuilder pb = new ProcessBuilder(
+                        "python3", // or "python" depending on server
+                        scriptPath,
+                        coin,
+                        timestamps.stream().map(String::valueOf).collect(Collectors.joining(",")),
+                        prices.stream().map(String::valueOf).collect(Collectors.joining(","))
+                );
 
-            ProcessBuilder pb = new ProcessBuilder(
-                    "python3",
-                    "C:\\Users\\Sufyan_Ali\\OneDrive\\Desktop\\Crypto-app\\server\\Crypto\\src\\main\\resources\\predict_prophet.py",
-                    coin,
-                    timestamps.stream().map(String::valueOf).collect(Collectors.joining(",")),
-                    prices.stream().map(String::valueOf).collect(Collectors.joining(","))
-            );
-            pb.redirectErrorStream(false); // keep stdout and stderr separate
-            Process process = pb.start();
+                pb.redirectErrorStream(false); // keep errors separate
+                Process process = pb.start();
 
-            StringBuilder jsonOut = new StringBuilder();
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    jsonOut.append(line);
+                StringBuilder jsonOut = new StringBuilder();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) jsonOut.append(line);
+                }
+
+                int exitCode = process.waitFor();
+                if (exitCode != 0) {
+                    System.err.println("Python process failed for coin: " + coin);
+                    continue;
+                }
+
+                String jsonResult = jsonOut.toString().trim();
+                if (jsonResult.isEmpty()) {
+                    System.err.println("Empty JSON output for coin: " + coin);
+                    continue;
+                }
+
+                JsonNode jsonNode = mapper.readTree(jsonResult); // safe now
+
+                if (jsonNode.has("times") && jsonNode.has("prices")) {
+                    List<Long> predictedTimes = new ArrayList<>();
+                    jsonNode.get("times").forEach(t -> predictedTimes.add(Long.parseLong(t.asText())));
+
+                    List<Double> predictedPrices = new ArrayList<>();
+                    jsonNode.get("prices").forEach(p -> predictedPrices.add(p.asDouble()));
+
+                    predictionService.savePrediction(coin, predictedTimes, predictedPrices);
+                } else {
+                    System.err.println("Invalid JSON format for coin: " + coin + " → " + jsonResult);
                 }
             }
-            String jsonResult = jsonOut.toString().trim();
-            if (jsonResult.isEmpty()) {
-                System.err.println("No JSON output for coin: " + coin);
-                continue;
-            }
 
-            JsonNode jsonNode = mapper.readTree(jsonResult);
-
-            if (jsonNode.has("times") && jsonNode.has("prices")) {
-                List<Long> predictedTimes = new ArrayList<>();
-                jsonNode.get("times").forEach(t -> predictedTimes.add(Long.parseLong(t.asText())));
-
-                List<Double> predictedPrices = new ArrayList<>();
-                jsonNode.get("prices").forEach(p -> predictedPrices.add(p.asDouble()));
-
-                // Save predictions to Mongo
-                predictionService.savePrediction(coin, predictedTimes, predictedPrices);
-            } else {
-                System.err.println("Invalid JSON format for coin: " + coin + " → " + jsonResult);
-            }
+        } catch (Exception e) {
+            System.err.println("runPredictions error:");
+            e.printStackTrace();
         }
     }
+
     @Scheduled(cron="0 */10 * * * *")
     public String CheckHealth() {
         return "ok";

@@ -8,6 +8,8 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.Date;
+
 @Document(collection = "coin_snapshots")
 @Data
 @NoArgsConstructor
@@ -42,4 +44,7 @@ public class CoinSnapshot {
     private long atl_date; // or String
     @Field("last_updated")  // 🔁 maps MongoDB field to Java field
     private long lastUpdated;
+
+    @Indexed(expireAfterSeconds = 7776000)
+    private Date expiryDate = new Date();
 }

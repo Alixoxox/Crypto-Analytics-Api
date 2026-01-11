@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -114,27 +115,30 @@ public class EntryService {
                     long updatedAt = Instant.parse(coinNode.get("last_updated").asText()).toEpochMilli();
 
                     CoinSnapshot snapshot = new CoinSnapshot(
-                            coinIdStr + "_" + updatedAt,
-                            coinNode.path("id").asText(""), // id here coin id
-                            coinNode.path("image").asText(null),
-                            coinNode.path("current_price").asDouble(0.0),
-                            coinNode.path("high_24h").asDouble(0.0),
-                            coinNode.path("low_24h").asDouble(0.0),
-                            coinNode.path("price_change_percentage_24h").asDouble(0.0),
-                            coinNode.path("market_cap").asLong(0),
-                            coinNode.path("total_volume").asLong(0),
-                            coinNode.path("market_cap_rank").asInt(0),
-                            coinNode.path("circulating_supply").asDouble(0.0),
-                            coinNode.path("total_supply").asDouble(0.0),
-                            coinNode.path("max_supply").asInt(0),
-                            coinNode.path("ath").asDouble(0.0),
-                            coinNode.path("ath_change_percentage").asDouble(0.0),
-                            coinNode.path("ath_date").asLong(0),
-                            coinNode.path("alt").asDouble(0.0),
-                            coinNode.path("atl_change_percentage").asDouble(0.0),
-                            coinNode.path("alt_date").asLong(0),
-                            updatedAt
+                            coinIdStr + "_" + updatedAt,                     // id
+                            coinNode.path("id").asText(""),                 // coinId
+                            coinNode.path("image").asText(null),           // image
+                            coinNode.path("current_price").asDouble(0.0),  // current_price
+                            coinNode.path("high_24h").asDouble(0.0),       // high_24h
+                            coinNode.path("low_24h").asDouble(0.0),        // low_24h
+                            coinNode.path("price_change_percentage_24h").asDouble(0.0), // price_change_percentage_24h
+                            coinNode.path("market_cap").asLong(0),         // market_cap
+                            coinNode.path("total_volume").asLong(0),       // total_volume
+                            coinNode.path("market_cap_rank").asInt(0),     // market_cap_rank
+                            coinNode.path("circulating_supply").asDouble(0.0), // circulating_supply
+                            coinNode.path("total_supply").asDouble(0.0),   // total_supply
+                            coinNode.path("max_supply").asDouble(0.0),     // max_supply ✅ double
+                            coinNode.path("ath").asDouble(0.0),            // ath
+                            coinNode.path("ath_change_percentage").asDouble(0.0), // ath_change_percentage
+                            coinNode.path("ath_date").asLong(0),           // ath_date
+                            coinNode.path("atl").asDouble(0.0),            // atl ✅ was typo
+                            coinNode.path("atl_change_percentage").asDouble(0.0), // atl_change_percentage
+                            coinNode.path("atl_date").asLong(0),           // atl_date ✅ was typo
+                            updatedAt,                                     // lastUpdated
+                            new Date()                                     // expiryDate
                     );
+                    snapshotRepository.save(snapshot);
+
                     snapshotRepository.save(snapshot);
                 }
                 System.out.println("Saved coin snaps");
