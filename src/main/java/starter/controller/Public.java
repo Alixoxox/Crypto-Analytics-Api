@@ -3,6 +3,8 @@ package starter.controller;
 import org.apache.coyote.Response;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -193,14 +195,13 @@ private UserRep UER;
     @GetMapping("market/info")
     public ResponseEntity GetRecentData(){
         try{
-            List data= MR.findTopByOrderByLastUpdatedDesc();
-            return ResponseEntity.ok(data);
+        Pageable limit = PageRequest.of(0, 200); // fetch only latest 50
+        List<Market> data = MR.findTopByOrderByLastUpdatedDesc(limit);
+        return ResponseEntity.ok(data);
         }catch (Exception e){
             e.printStackTrace();
             return ResponseEntity.badRequest().build();
-
         }
-
     }
     @GetMapping("coin/detail")
     public ResponseEntity getDetails(@RequestParam String id) {
