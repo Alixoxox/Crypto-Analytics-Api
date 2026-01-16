@@ -228,26 +228,22 @@ private UserRep UER;
         }
     }
 private MongoTemplate mongoTemplate;
-    @GetMapping("coins/name")
-    public ResponseEntity getcoinNames(){
-        try{
-             // Get distinct coinId values directly from MongoDB
-       List<String> coinList = mongoTemplate.findDistinct(
-               new Query(),            // no filtering, fetch all
-               "coinId",               // field in collection
-               CoinSnapshot.class,     // mapped collection
-               String.class            // result type
-       );
-
-       // Convert to Set to ensure uniqueness
-       Set<String> coins = new HashSet<>(coinList);
-
-       return ResponseEntity.ok(coins);
-        }catch(Exception e){
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error occurred");
-        }
+  @GetMapping("coins/name")
+public ResponseEntity<Object> getCoinNames() {
+    try {
+        Set<String> coins = new HashSet<>(mongoTemplate.findDistinct(
+            new Query(),
+            "coinId",
+            CoinSnapshot.class,
+            String.class
+        ));
+        return ResponseEntity.ok(coins); //  returns JSON array
+    } catch (Exception e) {
+        e.printStackTrace();
+        // Return JSON object with error message
+        return ResponseEntity.badRequest().body(Map.of("error", "Error occurred"));
     }
+}
     @PostMapping("account/changePass")
     public ResponseEntity ChangePassword(@RequestBody User change){
         try{
