@@ -195,7 +195,7 @@ private UserRep UER;
     @GetMapping("market/info")
     public ResponseEntity GetRecentData(){
         try{
-        Pageable limit = PageRequest.of(0, 200); // fetch only latest 50
+        Pageable limit = PageRequest.of(0, 50); // fetch only latest 50
         List<Market> data = MR.findTopByOrderByLastUpdatedDesc(limit);
         return ResponseEntity.ok(data);
         }catch (Exception e){
