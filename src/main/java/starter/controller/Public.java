@@ -227,7 +227,8 @@ private UserRep UER;
             return ResponseEntity.badRequest().body("Error occurred");
         }
     }
-private MongoTemplate mongoTemplate;
+    @Autowired
+    private MongoTemplate mongoTemplate;
   @GetMapping("coins/name")
 public ResponseEntity<Object> getCoinNames() {
     try {
