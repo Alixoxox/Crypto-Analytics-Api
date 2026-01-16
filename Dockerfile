@@ -33,7 +33,6 @@ ENV JAVA_OPTS="\
 -XX:+UseSerialGC \
 -XX:+TieredCompilation \
 -XX:TieredStopAtLevel=1 \
--XX:+AggressiveOpts \
 -XX:+UseStringDeduplication \
 -XX:+OptimizeStringConcat \
 -XX:+UseCompressedOops \

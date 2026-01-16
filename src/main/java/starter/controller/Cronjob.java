@@ -68,20 +68,20 @@ public class Cronjob {
         CES.SaveNewTrend();
     }
 
-    @Scheduled(cron = "0 0 16 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")
     public void runMarketreviewJob() {
         CES.SaveMarketReview();
     }
 
-    @Scheduled(cron = "0 0 17 * * *")  // 17 = 5 PM
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")
     public void runGlobalUpdate() {
         NFS.MarketType();
     }
-    @Scheduled(cron = "0 0 */4 * * *")  // Every 4 hour
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")  // Every 4 hour
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 0 17 * * *")  // 16 = 4 PM, 5 = minute 5
+    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")  // 16 = 4 PM, 5 = minute 5
     public void runPredictions() {
         try {
             // Clear previous predictions
