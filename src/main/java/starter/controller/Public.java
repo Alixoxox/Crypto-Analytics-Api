@@ -5,6 +5,8 @@ import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -225,12 +227,19 @@ private UserRep UER;
             return ResponseEntity.badRequest().body("Error occurred");
         }
     }
+    private MongoTemplate mongoTemplate;
 
     @GetMapping("coins/name")
     public ResponseEntity getcoinNames(){
         try{
-            List<CoinSnapshot> snapshot=CSR.findAll();
-            Set<String> Coins=CSS.getCoins(snapshot);
+            Set<String> Coins = new HashSet<>(
+                mongoTemplate.findDistinct(
+                        new Query(),
+                        "coinId",
+                        CoinSnapshot.class,
+                        String.class
+                )
+        );
             return ResponseEntity.ok(Coins);
         }catch(Exception e){
             e.printStackTrace();

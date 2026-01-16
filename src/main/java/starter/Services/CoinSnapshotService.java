@@ -134,13 +134,4 @@ public class CoinSnapshotService {
     public CompletableFuture<Chart> GetCompData(String Coin){
         return CompletableFuture.completedFuture(fetchChartData(Coin));
     }
-    public Set<String> getCoins(List<CoinSnapshot> snapshot){
-        Set<String> uniqueName= new HashSet<>(); //hashset extends set
-        for (CoinSnapshot snap: snapshot ){ //for each loop
-            String name= snap.getCoinId();
-            if(name!=null) uniqueName.add(name);
-        }
-        return uniqueName;
-    }
-
 }

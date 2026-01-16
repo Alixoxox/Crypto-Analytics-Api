@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -86,10 +87,14 @@ public class Cronjob {
         try {
             // Clear previous predictions
             CPR.deleteAll();
-            // Get top coins
-            List<CoinSnapshot> snapshots = CSR.findAll();
-            Set<String> coins = CSS.getCoins(snapshots);
-
+            Set<String> coins = new HashSet<>(
+                mongoTemplate.findDistinct(
+                 new Query(),
+                "coinId",
+                CoinSnapshot.class,
+                String.class
+                 )
+            );
             ObjectMapper mapper = new ObjectMapper();
             LocalDateTime twoMonthsAgo = LocalDateTime.now().minusMonths(2);
             long twoMonthsAgoMillis = twoMonthsAgo.toInstant(ZoneOffset.UTC).toEpochMilli();
