@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOptions;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -98,17 +99,20 @@ public class CoinSnapshotService {
 
     public List<org.bson.Document> FetchBestCoins(int limit){ //market best
 
-        Aggregation aggregation=Aggregation.newAggregation(
-                Aggregation.match(Criteria.where("market_cap_rank").gte(1).lte(limit)),
-                Aggregation.match(Criteria.where("coinId").nin(blacklist)),
-                Aggregation.sort(Sort.by(Sort.Order.asc("coinId"), Sort.Order.desc("last_updated"))),
-                Aggregation.group("coinId").first("$$ROOT").as("doc"),
-                Aggregation.replaceRoot("doc"),
-                Aggregation.sort(Sort.Direction.ASC, "market_cap_rank")
+      AggregationOptions options = AggregationOptions.builder()
+    .allowDiskUse(true)
+    .build();
 
-        );
-        return mongoTemplate.aggregate(aggregation, "coin_snapshots", org.bson.Document.class).getMappedResults();
-    }
+    Aggregation aggregation = Aggregation.newAggregation(
+        Aggregation.match(Criteria.where("market_cap_rank").gte(1).lte(limit)),
+        Aggregation.match(Criteria.where("coinId").nin(blacklist)),
+        Aggregation.group("coinId").first("$$ROOT").as("doc"),
+        Aggregation.replaceRoot("doc"),
+        Aggregation.sort(Sort.Direction.ASC, "market_cap_rank")
+    ).withOptions(options);
+
+    return mongoTemplate.aggregate(aggregation, "coin_snapshots", Document.class)
+                    .getMappedResults();}
 
     public Chart fetchChartData(String name){
         Aggregation aggregation=Aggregation.newAggregation(

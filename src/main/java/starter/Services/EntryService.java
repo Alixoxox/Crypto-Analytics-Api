@@ -151,21 +151,6 @@ public class EntryService {
             e.printStackTrace();
         }
     }
-    private double runPythonProphet(List<Long> timestamps, List<Double> prices) throws IOException {
-        String tsString = timestamps.stream().map(String::valueOf).collect(Collectors.joining(","));
-        String prString = prices.stream().map(String::valueOf).collect(Collectors.joining(","));
-
-        ProcessBuilder pb = new ProcessBuilder(
-                "python3", "forecast.py", tsString, prString
-        );
-        pb.redirectErrorStream(true);
-
-        Process process = pb.start();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String output = reader.readLine();
-        return Double.parseDouble(output.trim());
-    }
-
 
 }
 
