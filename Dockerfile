@@ -1,4 +1,3 @@
-# build App
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
@@ -10,7 +9,6 @@ RUN mvn dependency:go-offline -B
 COPY src ./src
 RUN mvn clean package -DskipTests -Dmaven.compiler.debug=false
 
-# Light weight image
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
@@ -25,16 +23,27 @@ USER appuser
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 8080
-
 ENV JAVA_OPTS="\
--Xmx320m \
--Xms180m \
--XX:MaxMetaspaceSize=100m \
+-Xmx256m \
+-Xms256m \
+-XX:MaxMetaspaceSize=80m \
 -XX:MetaspaceSize=80m \
--XX:+UseG1GC \
--XX:MaxGCPauseMillis=100 \
+-XX:MaxDirectMemorySize=32m \
+-XX:ReservedCodeCacheSize=32m \
+-XX:+UseSerialGC \
+-XX:+TieredCompilation \
+-XX:TieredStopAtLevel=1 \
+-XX:+AggressiveOpts \
 -XX:+UseStringDeduplication \
+-XX:+OptimizeStringConcat \
+-XX:+UseCompressedOops \
+-XX:+UseCompressedClassPointers \
 -XX:+ExitOnOutOfMemoryError \
--Djava.security.egd=file:/dev/./urandom"
+-noverify \
+-XX:+UnlockExperimentalVMOptions \
+-XX:+UseContainerSupport \
+-Djava.security.egd=file:/dev/./urandom \
+-Dspring.backgroundpreinitializer.ignore=true \
+-Djava.awt.headless=true"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "java $JAVA_OPTS -jar app.jar"]
