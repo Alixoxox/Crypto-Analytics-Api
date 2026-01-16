@@ -230,19 +230,24 @@ private UserRep UER;
 private MongoTemplate mongoTemplate;
     @GetMapping("coins/name")
     public ResponseEntity getcoinNames(){
-   try {
-        // Get distinct coinId values directly from MongoDB
-        List<String> coinList = mongoTemplate.findDistinct(
-                new Query(),            // no filtering, fetch all
-                "coinId",               // field in collection
-                CoinSnapshot.class,     // mapped collection
-                String.class            // result type
-        );
+        try{
+             // Get distinct coinId values directly from MongoDB
+       List<String> coinList = mongoTemplate.findDistinct(
+               new Query(),            // no filtering, fetch all
+               "coinId",               // field in collection
+               CoinSnapshot.class,     // mapped collection
+               String.class            // result type
+       );
 
-        // Convert to Set to ensure uniqueness
-        Set<String> coins = new HashSet<>(coinList);
+       // Convert to Set to ensure uniqueness
+       Set<String> coins = new HashSet<>(coinList);
 
-        return ResponseEntity.ok(coins);
+       return ResponseEntity.ok(coins);
+        }catch(Exception e){
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error occurred");
+        }
+    }
     @PostMapping("account/changePass")
     public ResponseEntity ChangePassword(@RequestBody User change){
         try{
