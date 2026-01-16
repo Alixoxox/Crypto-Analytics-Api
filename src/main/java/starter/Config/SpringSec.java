@@ -37,6 +37,7 @@ public class SpringSec {
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(request -> request
+                        .requestMatchers("/user/predict").permitAll()
                         .requestMatchers("/user/**").authenticated()
                         .anyRequest().permitAll()
                 )
