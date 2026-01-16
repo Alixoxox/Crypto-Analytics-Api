@@ -227,25 +227,22 @@ private UserRep UER;
             return ResponseEntity.badRequest().body("Error occurred");
         }
     }
-    private MongoTemplate mongoTemplate;
-
+private MongoTemplate mongoTemplate;
     @GetMapping("coins/name")
     public ResponseEntity getcoinNames(){
-        try{
-            Set<String> Coins = new HashSet<>(
-                mongoTemplate.findDistinct(
-                        new Query(),
-                        "coinId",
-                        CoinSnapshot.class,
-                        String.class
-                )
+   try {
+        // Get distinct coinId values directly from MongoDB
+        List<String> coinList = mongoTemplate.findDistinct(
+                new Query(),            // no filtering, fetch all
+                "coinId",               // field in collection
+                CoinSnapshot.class,     // mapped collection
+                String.class            // result type
         );
-            return ResponseEntity.ok(Coins);
-        }catch(Exception e){
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body("Error occurred");
-        }
-    }
+
+        // Convert to Set to ensure uniqueness
+        Set<String> coins = new HashSet<>(coinList);
+
+        return ResponseEntity.ok(coins);
     @PostMapping("account/changePass")
     public ResponseEntity ChangePassword(@RequestBody User change){
         try{
