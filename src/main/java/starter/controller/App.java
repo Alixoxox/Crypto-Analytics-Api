@@ -111,13 +111,5 @@ private CoinPredictionRepository CPR;
         }
         return ResponseEntity.badRequest().build();
     }
-    @GetMapping("/predict")
-    public ResponseEntity<List<CoinPredictions>> PredictCoin(@RequestParam String coin){
-        try {
-            List<CoinPredictions> x = CPR.findByCoinId(coin);
-            return ResponseEntity.ok().body(x);
-        }catch(Exception e){
-            return ResponseEntity.badRequest().build();
-        }
-    }
+
 }

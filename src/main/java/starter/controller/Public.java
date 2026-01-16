@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import starter.Config.UserDetailImpl;
 import starter.Entity.*;
+import starter.Repository.CoinPredictionRepository;
 import starter.Repository.CoinSnapRepo;
 import starter.Repository.MarketRepo;
 import starter.Repository.UserRep;
@@ -311,6 +312,17 @@ public ResponseEntity<Object> getCoinNames() {
             }
         } catch (RuntimeException e) {
             e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    @Autowired
+    private CoinPredictionRepository CPR;
+     @GetMapping("/predict")
+    public ResponseEntity<List<CoinPredictions>> PredictCoin(@RequestParam String coin){
+        try {
+            List<CoinPredictions> x = CPR.findByCoinId(coin);
+            return ResponseEntity.ok().body(x);
+        }catch(Exception e){
             return ResponseEntity.badRequest().build();
         }
     }
