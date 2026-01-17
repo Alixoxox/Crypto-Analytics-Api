@@ -59,10 +59,12 @@ public class Cronjob {
         CES.SaveSnapshot();
     }
 
-    @Scheduled(cron = "0 */30 * * * *")  // Every 30 mins
+    @Scheduled(cron = "0 */5 * * * *")  // Every 30 mins
     public void runTrendingJob() {
-        TCR.deleteAll();
-        CES.SaveNewTrend();
+          System.out.println("🔥 Trending job started");
+            TCR.deleteAll();
+            CES.SaveNewTrend();
+            System.out.println("✅ Trending job finished");
     }
 
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")

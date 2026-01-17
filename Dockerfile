@@ -32,19 +32,15 @@ COPY predict_prophet.py /app/scripts/predict_prophet.py
 EXPOSE 8080
 
 ENV JAVA_OPTS="\
--Xmx120m \
--Xms80m \
--XX:MaxMetaspaceSize=48m \
--XX:MetaspaceSize=48m \
--XX:MaxDirectMemorySize=8m \
--XX:ReservedCodeCacheSize=16m \
+-Xms96m \
+-Xmx160m \
+-XX:MetaspaceSize=96m \
+-XX:MaxMetaspaceSize=128m \
+-XX:MaxDirectMemorySize=16m \
+-XX:ReservedCodeCacheSize=32m \
 -XX:+UseSerialGC \
 -XX:+TieredCompilation \
 -XX:TieredStopAtLevel=1 \
--XX:MinHeapFreeRatio=10 \
--XX:MaxHeapFreeRatio=30 \
--XX:GCTimeRatio=2 \
--XX:+UseStringDeduplication \
 -XX:+UseCompressedOops \
 -XX:+UseCompressedClassPointers \
 -XX:+ExitOnOutOfMemoryError \
@@ -53,8 +49,8 @@ ENV JAVA_OPTS="\
 -Djava.security.egd=file:/dev/./urandom \
 -Dspring.backgroundpreinitializer.ignore=true \
 -Djava.awt.headless=true \
--Dserver.tomcat.threads.max=10 \
+-Dserver.tomcat.threads.max=8 \
 -Dserver.tomcat.threads.min-spare=1 \
--Dserver.tomcat.max-connections=50"
+-Dserver.tomcat.max-connections=30"
 
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "java $JAVA_OPTS -jar app.jar"]
