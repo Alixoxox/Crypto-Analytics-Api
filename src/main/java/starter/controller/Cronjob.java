@@ -138,13 +138,10 @@ public class Cronjob {
                     .map(CoinSnapshot::getCurrent_price)
                     .toList();
 
-            // 5️⃣ Load python from classpath (IMPORTANT FIX)
-            File script = new File(
-                    Objects.requireNonNull(
-                            getClass().getClassLoader()
-                                    .getResource("predict_prophet.py")
-                    ).toURI()
-            );
+            File script = new File("/app/scripts/predict_prophet.py");
+            if (!script.exists()) {
+             throw new RuntimeException("Python script not found at " + script.getAbsolutePath());
+            }
 
             ProcessBuilder pb = new ProcessBuilder(
                     "python3",

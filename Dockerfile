@@ -1,3 +1,4 @@
+# ---------- Build stage ----------
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
 WORKDIR /app
 
@@ -5,15 +6,16 @@ WORKDIR /app
 COPY pom.xml .
 RUN mvn dependency:go-offline -B
 
-# Build the app
+# Copy source and build the app
 COPY src ./src
 RUN mvn clean package -DskipTests -Dmaven.compiler.debug=false
 
+# ---------- Runtime stage ----------
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Install dumb-init (prevents zombie processes)
-RUN apk add --no-cache dumb-init
+# Install dumb-init (prevents zombie processes) and Python3
+RUN apk add --no-cache dumb-init python3 py3-pip
 
 # Security: run as non-root user
 RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
@@ -22,7 +24,12 @@ USER appuser
 # Copy the built jar file
 COPY --from=build /app/target/*.jar app.jar
 
+# Copy the Python script to /app/scripts
+COPY predict_prophet.py /app/scripts/predict_prophet.py
+
+# Expose port
 EXPOSE 8080
+# Java options
 ENV JAVA_OPTS="\
 -Xmx256m \
 -Xms256m \
@@ -45,4 +52,5 @@ ENV JAVA_OPTS="\
 -Dspring.backgroundpreinitializer.ignore=true \
 -Djava.awt.headless=true"
 
+# Entrypoint
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "java $JAVA_OPTS -jar app.jar"]
