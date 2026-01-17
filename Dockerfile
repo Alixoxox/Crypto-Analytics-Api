@@ -14,8 +14,8 @@ RUN mvn clean package -DskipTests -Dmaven.compiler.debug=false
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Install dumb-init (prevents zombie processes) and Python3
-RUN apk add --no-cache dumb-init python3 py3-pip
+RUN apk add --no-cache dumb-init python3 py3-pip \
+    && pip3 install --no-cache-dir pandas prophet
 
 # Security: run as non-root user
 RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
