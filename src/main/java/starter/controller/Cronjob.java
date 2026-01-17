@@ -80,13 +80,11 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 */1 * * * *", zone = "Asia/Karachi")
+    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Karachi")
     public void runPredictions() {
     try {
         long now = System.currentTimeMillis();
         long cutoff = now - 24 * 60 * 60 * 1000;
-        System.out.println("runPredictions triggered at " + Instant.now());
-        // 1️⃣ Get coins that have data
         Set<String> allCoins = new HashSet<>(
                 mongoTemplate.findDistinct(
                         new Query(),
@@ -96,14 +94,12 @@ public class Cronjob {
                 )
         );
         if (allCoins.isEmpty()) return;
-        System.out.println("Got coins");
         List<String> predictedToday = mongoTemplate.find(
                 Query.query(Criteria.where("generatedAt").gte(cutoff)),
                 CoinPredictions.class
         ).stream().map(CoinPredictions::getCoinId).toList();
         System.out.println("Already predicted today: " + predictedToday);
 
-        // 3️⃣ Filter coins needing prediction
         List<String> pendingCoins = allCoins.stream()
                 .filter(c -> !predictedToday.contains(c))
                 .limit(5)
@@ -118,7 +114,6 @@ public class Cronjob {
 
         for (String coin : pendingCoins) {
 
-            // 4️⃣ Load history
             List<CoinSnapshot> history = mongoTemplate.find(
                     Query.query(
                             Criteria.where("coinId").is(coin)
