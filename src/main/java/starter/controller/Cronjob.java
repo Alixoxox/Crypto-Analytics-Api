@@ -102,7 +102,7 @@ public class Cronjob {
 
         List<String> pendingCoins = allCoins.stream()
                 .filter(c -> !predictedToday.contains(c))
-                .limit(5)
+                .limit(3)
                 .toList();
 
         if (pendingCoins.isEmpty()) return;
