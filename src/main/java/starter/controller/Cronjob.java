@@ -85,7 +85,7 @@ public class Cronjob {
     try {
         long now = System.currentTimeMillis();
         long cutoff = now - 24 * 60 * 60 * 1000;
-
+        System.out.println("runPredictions triggered at " + Instant.now());
         // 1️⃣ Get coins that have data
         Set<String> allCoins = new HashSet<>(
                 mongoTemplate.findDistinct(
@@ -95,14 +95,14 @@ public class Cronjob {
                         String.class
                 )
         );
-
         if (allCoins.isEmpty()) return;
-
+        System.out.println("Got coins");
         // 2️⃣ Get coins already predicted today
         List<String> predictedToday = mongoTemplate.find(
                 Query.query(Criteria.where("generatedAt").gte(cutoff)),
                 CoinPredictions.class
         ).stream().map(CoinPredictions::getCoinId).toList();
+        System.out.println("Already predicted today: " + predictedToday);
 
         // 3️⃣ Filter coins needing prediction
         List<String> pendingCoins = allCoins.stream()
@@ -159,6 +159,7 @@ public class Cronjob {
             )) {
                 json = br.lines().collect(Collectors.joining());
             }
+            System.out.println("Python output: " + json);
 
             if (process.waitFor() != 0 || json.isBlank()) continue;
 
@@ -179,7 +180,7 @@ public class Cronjob {
             cp.setPredictedTime(t);
             cp.setPredictedPrice(p);
 
-            mongoTemplate.save(cp);
+            CPR.save(cp);
 
             // Small delay to avoid CPU spike
             Thread.sleep(2000);
