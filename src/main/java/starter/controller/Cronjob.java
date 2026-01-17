@@ -146,6 +146,7 @@ public class Cronjob {
             ProcessBuilder pb = new ProcessBuilder(
                     "python3",
                     script.getAbsolutePath(),
+                    coin,
                     String.join(",", timestamps.stream().map(String::valueOf).toList()),
                     String.join(",", prices.stream().map(String::valueOf).toList())
             );
