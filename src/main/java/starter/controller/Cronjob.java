@@ -50,8 +50,6 @@ public class Cronjob {
     private CoinPredictionRepository CPR;
     @Autowired
     private NotifyService NFS;
-    @Autowired
-    private CoinPredictions cp;
 
     @Scheduled(cron = "0 0 0 */3 * ?")  //every 4 days
     public void deleteNotifications() {
