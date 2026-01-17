@@ -9,6 +9,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import starter.Entity.CoinPredictions;
 import starter.Entity.CoinSnapshot;
 import starter.Repository.*;
 import starter.Services.CoinPredictService;
@@ -23,10 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
@@ -52,6 +50,8 @@ public class Cronjob {
     private CoinPredictionRepository CPR;
     @Autowired
     private NotifyService NFS;
+    @Autowired
+    private CoinPredictions cp;
 
     @Scheduled(cron = "0 0 0 */3 * ?")  //every 4 days
     public void deleteNotifications() {
@@ -82,86 +82,119 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")  // 16 = 4 PM, 5 = minute 5
+    @Scheduled(cron = "0 */15 * * * *", zone = "Asia/Karachi")
     public void runPredictions() {
-        try {
-            // Clear previous predictions
-            CPR.deleteAll();
-            Set<String> coins = new HashSet<>(
+    try {
+        long now = System.currentTimeMillis();
+        long cutoff = now - 24 * 60 * 60 * 1000;
+
+        // 1️⃣ Get coins that have data
+        Set<String> allCoins = new HashSet<>(
                 mongoTemplate.findDistinct(
-                 new Query(),
-                "coinId",
-                CoinSnapshot.class,
-                String.class
-                 )
+                        new Query(),
+                        "coinId",
+                        CoinSnapshot.class,
+                        String.class
+                )
+        );
+
+        if (allCoins.isEmpty()) return;
+
+        // 2️⃣ Get coins already predicted today
+        List<String> predictedToday = mongoTemplate.find(
+                Query.query(Criteria.where("generatedAt").gte(cutoff)),
+                CoinPredictions.class
+        ).stream().map(CoinPredictions::getCoinId).toList();
+
+        // 3️⃣ Filter coins needing prediction
+        List<String> pendingCoins = allCoins.stream()
+                .filter(c -> !predictedToday.contains(c))
+                .limit(2)
+                .toList();
+
+        if (pendingCoins.isEmpty()) return;
+
+        ObjectMapper mapper = new ObjectMapper();
+        long twoMonthsAgo = Instant.now()
+                .minus(60, ChronoUnit.DAYS)
+                .toEpochMilli();
+
+        for (String coin : pendingCoins) {
+
+            // 4️⃣ Load history
+            List<CoinSnapshot> history = mongoTemplate.find(
+                    Query.query(
+                            Criteria.where("coinId").is(coin)
+                                    .and("last_updated").gte(twoMonthsAgo)
+                    ).with(Sort.by(Sort.Direction.ASC, "last_updated")),
+                    CoinSnapshot.class
             );
-            ObjectMapper mapper = new ObjectMapper();
-            LocalDateTime twoMonthsAgo = LocalDateTime.now().minusMonths(2);
-            long twoMonthsAgoMillis = twoMonthsAgo.toInstant(ZoneOffset.UTC).toEpochMilli();
-            for (String coin : coins) {
-                List<CoinSnapshot> history = mongoTemplate.find(
-                        Query.query(Criteria.where("coinId").is(coin)
-                                        .and("last_updated").gte(twoMonthsAgoMillis))
-                                .with(Sort.by(Sort.Direction.ASC, "last_updated")),
-                        CoinSnapshot.class
-                );
 
-                if (history.isEmpty()) continue;
+            if (history.size() < 30) continue; // Prophet needs enough data
 
-                List<Long> timestamps = history.stream().map(CoinSnapshot::getLastUpdated).toList();
-                List<Double> prices = history.stream().map(CoinSnapshot::getCurrent_price).toList();
-                // Use relative path for deployment
-                String scriptPath = new File("src/main/resources/predict_prophet.py").getAbsolutePath();
+            List<Long> timestamps = history.stream()
+                    .map(CoinSnapshot::getLastUpdated)
+                    .toList();
 
-                ProcessBuilder pb = new ProcessBuilder(
-                        "python3", // or "python" depending on server
-                        scriptPath,
-                        coin,
-                        timestamps.stream().map(String::valueOf).collect(Collectors.joining(",")),
-                        prices.stream().map(String::valueOf).collect(Collectors.joining(","))
-                );
+            List<Double> prices = history.stream()
+                    .map(CoinSnapshot::getCurrent_price)
+                    .toList();
 
-                pb.redirectErrorStream(false); // keep errors separate
-                Process process = pb.start();
+            // 5️⃣ Load python from classpath (IMPORTANT FIX)
+            File script = new File(
+                    Objects.requireNonNull(
+                            getClass().getClassLoader()
+                                    .getResource("predict_prophet.py")
+                    ).toURI()
+            );
 
-                StringBuilder jsonOut = new StringBuilder();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) jsonOut.append(line);
-                }
+            ProcessBuilder pb = new ProcessBuilder(
+                    "python3",
+                    script.getAbsolutePath(),
+                    String.join(",", timestamps.stream().map(String::valueOf).toList()),
+                    String.join(",", prices.stream().map(String::valueOf).toList())
+            );
 
-                int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    System.err.println("Python process failed for coin: " + coin);
-                    continue;
-                }
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
 
-                String jsonResult = jsonOut.toString().trim();
-                if (jsonResult.isEmpty()) {
-                    System.err.println("Empty JSON output for coin: " + coin);
-                    continue;
-                }
-
-                JsonNode jsonNode = mapper.readTree(jsonResult); // safe now
-
-                if (jsonNode.has("times") && jsonNode.has("prices")) {
-                    List<Long> predictedTimes = new ArrayList<>();
-                    jsonNode.get("times").forEach(t -> predictedTimes.add(Long.parseLong(t.asText())));
-
-                    List<Double> predictedPrices = new ArrayList<>();
-                    jsonNode.get("prices").forEach(p -> predictedPrices.add(p.asDouble()));
-
-                    predictionService.savePrediction(coin, predictedTimes, predictedPrices);
-                } else {
-                    System.err.println("Invalid JSON format for coin: " + coin + " → " + jsonResult);
-                }
+            String json;
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(process.getInputStream())
+            )) {
+                json = br.lines().collect(Collectors.joining());
             }
 
-        } catch (Exception e) {
-            System.err.println("runPredictions error:");
-            e.printStackTrace();
+            if (process.waitFor() != 0 || json.isBlank()) continue;
+
+            JsonNode node = mapper.readTree(json);
+
+            if (!node.has("times") || !node.has("prices")) continue;
+
+            CoinPredictions cp = new CoinPredictions();
+            cp.setCoinId(coin);
+            cp.setGeneratedAt(now);
+
+            List<Long> t = new ArrayList<>();
+            node.get("times").forEach(x -> t.add(x.asLong()));
+
+            List<Double> p = new ArrayList<>();
+            node.get("prices").forEach(x -> p.add(x.asDouble()));
+
+            cp.setPredictedTime(t);
+            cp.setPredictedPrice(p);
+
+            mongoTemplate.save(cp);
+
+            // Small delay to avoid CPU spike
+            Thread.sleep(2000);
         }
+
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+}
+
 
     @Scheduled(cron="0 */10 * * * *")
     public String CheckHealth() {
