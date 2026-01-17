@@ -18,6 +18,7 @@ RUN apk add --no-cache \
     dumb-init \
     python3 \
     py3-pip \
+    py3-pandas \
     && pip3 install --no-cache-dir --break-system-packages \
         pystan==2.19.1.1 \
         prophet
