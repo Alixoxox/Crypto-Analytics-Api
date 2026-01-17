@@ -15,7 +15,7 @@ FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN apk add --no-cache dumb-init python3 py3-pip \
-    && pip3 install --no-cache-dir pandas prophet
+    && pip3 install --no-cache-dir --break-system-packages pandas prophet
 
 # Security: run as non-root user
 RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
