@@ -80,7 +80,7 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 */15 * * * *", zone = "Asia/Karachi")
+    @Scheduled(cron = "0 */1 * * * *", zone = "Asia/Karachi")
     public void runPredictions() {
     try {
         long now = System.currentTimeMillis();
