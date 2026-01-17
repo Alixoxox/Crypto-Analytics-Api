@@ -20,9 +20,7 @@ import starter.Services.NotifyService;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,9 +78,13 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 */5 * * * *", zone = "Asia/Karachi")
+    @Scheduled(cron = "0 */4 1-4 * * *", zone = "Asia/Karachi")
     public void runPredictions() {
     try {
+         LocalTime Enow = LocalTime.now(ZoneId.of("Asia/Karachi"));
+        if (Enow.isBefore(LocalTime.of(1, 0)) || Enow.isAfter(LocalTime.of(5, 0))) {
+            return;  // Silent exit outside window
+        }
         long now = System.currentTimeMillis();
         long cutoff = now - 24 * 60 * 60 * 1000;
         Set<String> allCoins = new HashSet<>(
@@ -102,7 +104,7 @@ public class Cronjob {
 
         List<String> pendingCoins = allCoins.stream()
                 .filter(c -> !predictedToday.contains(c))
-                .limit(3)
+                .limit(2)
                 .toList();
 
         if (pendingCoins.isEmpty()) return;
@@ -185,7 +187,7 @@ public class Cronjob {
             cp.setPredictedPrice(p);
 
             CPR.save(cp);
-
+            System.gc();
             // Small delay to avoid CPU spike
             Thread.sleep(2000);
         }
