@@ -1,6 +1,10 @@
-import sys, json
+import sys, json, warnings, logging
 import pandas as pd
 from prophet import Prophet
+
+warnings.filterwarnings("ignore")
+logging.getLogger('prophet').setLevel(logging.ERROR)
+logging.getLogger('cmdstanpy').setLevel(logging.ERROR)
 
 coin = sys.argv[1]  # "BTC"
 timestamps = [int(t) for t in sys.argv[2].split(",")]

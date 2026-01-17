@@ -154,18 +154,27 @@ public class Cronjob {
             pb.redirectErrorStream(true);
             Process process = pb.start();
 
-            String json;
+           // Capture all output for debugging
+            String fullOutput;
             try (BufferedReader br = new BufferedReader(
-                    new InputStreamReader(process.getInputStream())
+            new InputStreamReader(process.getInputStream())
             )) {
-                json = br.lines().collect(Collectors.joining());
+            fullOutput = br.lines().collect(Collectors.joining("\n"));
             }
-            System.out.println("Python output: " + json);
 
-            if (process.waitFor() != 0 || json.isBlank()) continue;
+            if (process.waitFor() != 0 || fullOutput.isBlank()) continue;
+
+            String json = fullOutput.lines()
+            .filter(line -> line.trim().startsWith("{"))
+                .reduce((first, second) -> second)  // Get last match
+            .orElse("");
+
+            if (json.isBlank()) {
+             System.out.println("No JSON found in output: " + fullOutput);
+            continue;
+            }
 
             JsonNode node = mapper.readTree(json);
-
             if (!node.has("times") || !node.has("prices")) continue;
 
             CoinPredictions cp = new CoinPredictions();
