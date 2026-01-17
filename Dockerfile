@@ -14,7 +14,13 @@ RUN mvn clean package -DskipTests -Dmaven.compiler.debug=false
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-RUN apk add --no-cache dumb-init python3 py3-pip \
+RUN apk add --no-cache \
+    dumb-init \
+    python3 \
+    py3-pip \
+    build-base \
+    make \
+    gfortran \
     && pip3 install --no-cache-dir --break-system-packages pandas prophet
 
 # Security: run as non-root user
