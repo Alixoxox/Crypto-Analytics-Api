@@ -18,11 +18,9 @@ RUN apk add --no-cache \
     dumb-init \
     python3 \
     py3-pip \
-    build-base \
-    make \
-    gfortran \
-    && pip3 install --no-cache-dir --break-system-packages pandas prophet
-
+    && pip3 install --no-cache-dir --break-system-packages \
+        pystan==2.19.1.1 \
+        prophet
 # Security: run as non-root user
 RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
 USER appuser
