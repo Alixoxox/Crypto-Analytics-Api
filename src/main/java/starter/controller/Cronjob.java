@@ -97,7 +97,6 @@ public class Cronjob {
         );
         if (allCoins.isEmpty()) return;
         System.out.println("Got coins");
-        // 2️⃣ Get coins already predicted today
         List<String> predictedToday = mongoTemplate.find(
                 Query.query(Criteria.where("generatedAt").gte(cutoff)),
                 CoinPredictions.class
@@ -107,14 +106,14 @@ public class Cronjob {
         // 3️⃣ Filter coins needing prediction
         List<String> pendingCoins = allCoins.stream()
                 .filter(c -> !predictedToday.contains(c))
-                .limit(2)
+                .limit(5)
                 .toList();
 
         if (pendingCoins.isEmpty()) return;
 
         ObjectMapper mapper = new ObjectMapper();
         long twoMonthsAgo = Instant.now()
-                .minus(60, ChronoUnit.DAYS)
+                .minus(90, ChronoUnit.DAYS)
                 .toEpochMilli();
 
         for (String coin : pendingCoins) {
