@@ -11,19 +11,20 @@ COPY src ./src
 RUN mvn clean package -DskipTests -Dmaven.compiler.debug=false
 
 # ---------- Runtime stage ----------
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-RUN apk add --no-cache \
+# Install Prophet with minimal dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     dumb-init \
     python3 \
-    py3-pip \
-    py3-pandas \
-    && pip3 install --no-cache-dir --break-system-packages \
-        pystan==2.19.1.1 \
-        prophet
+    python3-pip \
+    && pip3 install --no-cache-dir prophet \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /root/.cache
+
 # Security: run as non-root user
-RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
+RUN groupadd -g 1001 appuser && useradd -u 1001 -g appuser appuser
 USER appuser
 
 # Copy the built jar file
@@ -34,28 +35,33 @@ COPY predict_prophet.py /app/scripts/predict_prophet.py
 
 # Expose port
 EXPOSE 8080
-# Java options
+
+# EXTREME memory optimization - save RAM for compute workloads
 ENV JAVA_OPTS="\
--Xmx256m \
--Xms256m \
--XX:MaxMetaspaceSize=80m \
--XX:MetaspaceSize=80m \
--XX:MaxDirectMemorySize=32m \
--XX:ReservedCodeCacheSize=32m \
+-Xmx120m \
+-Xms80m \
+-XX:MaxMetaspaceSize=48m \
+-XX:MetaspaceSize=48m \
+-XX:MaxDirectMemorySize=8m \
+-XX:ReservedCodeCacheSize=16m \
 -XX:+UseSerialGC \
 -XX:+TieredCompilation \
 -XX:TieredStopAtLevel=1 \
+-XX:MinHeapFreeRatio=10 \
+-XX:MaxHeapFreeRatio=30 \
+-XX:GCTimeRatio=2 \
 -XX:+UseStringDeduplication \
--XX:+OptimizeStringConcat \
 -XX:+UseCompressedOops \
 -XX:+UseCompressedClassPointers \
 -XX:+ExitOnOutOfMemoryError \
--noverify \
--XX:+UnlockExperimentalVMOptions \
 -XX:+UseContainerSupport \
+-XX:ActiveProcessorCount=1 \
 -Djava.security.egd=file:/dev/./urandom \
 -Dspring.backgroundpreinitializer.ignore=true \
--Djava.awt.headless=true"
+-Djava.awt.headless=true \
+-Dserver.tomcat.threads.max=10 \
+-Dserver.tomcat.threads.min-spare=1 \
+-Dserver.tomcat.max-connections=50"
 
 # Entrypoint
 ENTRYPOINT ["dumb-init", "--", "sh", "-c", "java $JAVA_OPTS -jar app.jar"]
