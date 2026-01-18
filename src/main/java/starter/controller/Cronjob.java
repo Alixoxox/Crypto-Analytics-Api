@@ -69,6 +69,7 @@ public class Cronjob {
     public void runMarketreviewJob() {
         CES.SaveMarketReview();
     }
+private final AtomicBoolean running = new AtomicBoolean(false);
 
     @Scheduled(cron = "0 0 3 * * *", zone = "Asia/Karachi")
     public void runGlobalUpdate() {
@@ -78,40 +79,34 @@ public class Cronjob {
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 */4 1-4 * * *", zone = "Asia/Karachi")
+    @Scheduled(cron = "0 */5 1-6 * * *", zone = "Asia/Karachi")
     public void runPredictions() {
+        if (!running.compareAndSet(false, true)) return;
     try {
-         LocalTime Enow = LocalTime.now(ZoneId.of("Asia/Karachi"));
-        if (Enow.isBefore(LocalTime.of(1, 0)) || Enow.isAfter(LocalTime.of(5, 0))) {
-            return;  // Silent exit outside window
-        }
         long now = System.currentTimeMillis();
         long cutoff = now - 24 * 60 * 60 * 1000;
-        Set<String> allCoins = new HashSet<>(
-                mongoTemplate.findDistinct(
+        List<String> allCoins = mongoTemplate.findDistinct(
                         new Query(),
                         "coinId",
                         CoinSnapshot.class,
-                        String.class
-                )
-        );
+                        String.class).stream().sorted().toList();;
         if (allCoins.isEmpty()) return;
-        List<String> predictedToday = mongoTemplate.find(
+        Set<String> predictedToday = mongoTemplate.find(
                 Query.query(Criteria.where("generatedAt").gte(cutoff)),
                 CoinPredictions.class
-        ).stream().map(CoinPredictions::getCoinId).toList();
+        ).stream().map(CoinPredictions::getCoinId).toList().stream().collect(Collectors.toSet());
         System.out.println("Already predicted today: " + predictedToday);
 
         List<String> pendingCoins = allCoins.stream()
                 .filter(c -> !predictedToday.contains(c))
-                .limit(2)
+                .limit(3)
                 .toList();
 
         if (pendingCoins.isEmpty()) return;
 
         ObjectMapper mapper = new ObjectMapper();
         long twoMonthsAgo = Instant.now()
-                .minus(90, ChronoUnit.DAYS)
+                .minus(60, ChronoUnit.DAYS)
                 .toEpochMilli();
 
         for (String coin : pendingCoins) {
@@ -124,7 +119,7 @@ public class Cronjob {
                     CoinSnapshot.class
             );
 
-            if (history.size() < 30) continue; // Prophet needs enough data
+            if (history.size() < 15) continue; // Prophet needs enough data
 
             List<Long> timestamps = history.stream()
                     .map(CoinSnapshot::getLastUpdated)
@@ -187,13 +182,12 @@ public class Cronjob {
             cp.setPredictedPrice(p);
 
             CPR.save(cp);
-            System.gc();
-            // Small delay to avoid CPU spike
-            Thread.sleep(2000);
         }
 
     } catch (Exception e) {
         e.printStackTrace();
+    }finally{
+        running.set(false);
     }
 }
 
