@@ -79,7 +79,7 @@ private final AtomicBoolean running = new AtomicBoolean(false);
     public void runnotifyjob(){
         NFS.updateTopCoinNotifications();
     }
-    @Scheduled(cron = "0 */5 1-6 * * *", zone = "Asia/Karachi")
+    @Scheduled(cron = "0 */5 0-6 * * *", zone = "Asia/Karachi")
     public void runPredictions() {
         if (!running.compareAndSet(false, true)) return;
     try {
