@@ -3,8 +3,10 @@ package starter.Entity;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -17,4 +19,6 @@ public class CoinPredictions {
     private List<Long> predictedTime;
     private List<Double> predictedPrice;
     private long generatedAt;     // When this prediction was generated
+    @Indexed(expireAfterSeconds = 86400)
+    private Date expiryDate = new Date(); //auto expiry
 }
